@@ -761,8 +761,10 @@ section {
 
 .regular-price {
     font-size: 1.5rem;
-    font-weight: 500;
-    color: #94a3b8;
+    font-weight: normal;
+    color: #64748b;
+    text-decoration: line-through;
+    text-decoration-color: #ff4d4d;
 }
 
 .offer-price {
