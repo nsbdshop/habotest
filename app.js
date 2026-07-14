@@ -10,7 +10,7 @@ try {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Register button ripple effect
+    // Register button ripple effect using Event Delegation
     initButtonRipples();
 
     // Intersection Observer for scroll animations (Fade-up, etc.)
@@ -21,35 +21,36 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Premium Button Ripple Effect
+ * Premium Button Ripple Effect (Optimized with Event Delegation)
  */
 function initButtonRipples() {
-    const buttons = document.querySelectorAll('.btn-ripple');
-    buttons.forEach(button => {
-        button.addEventListener('click', function (e) {
-            const rect = this.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+    document.body.addEventListener('click', (e) => {
+        const button = e.target.closest('.btn-ripple');
+        if (!button) return;
 
-            const ripple = document.createElement('span');
-            ripple.style.left = `${x}px`;
-            ripple.style.top = `${y}px`;
-            ripple.classList.add('ripple-effect');
+        const rect = button.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
 
-            this.appendChild(ripple);
+        const ripple = document.createElement('span');
+        ripple.style.left = `${x}px`;
+        ripple.style.top = `${y}px`;
+        ripple.classList.add('ripple-effect');
 
-            setTimeout(() => {
-                ripple.remove();
-            }, 600);
-        });
+        button.appendChild(ripple);
+
+        setTimeout(() => {
+            ripple.remove();
+        }, 600);
     });
 }
 
 /**
- * Scroll Reveal Animations
+ * Scroll Reveal Animations (Guarded and Optimized)
  */
 function initScrollAnimations() {
     const animatedElements = document.querySelectorAll('.fade-up, .fade-left, .fade-right');
+    if (animatedElements.length === 0) return;
 
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -72,7 +73,8 @@ function initScrollAnimations() {
  * Dynamically append product info to WhatsApp links
  */
 function initWhatsAppLinks() {
-    const productTitle = document.title.split('|')[0].trim();
+    const titleParts = document.title.split('|');
+    const productTitle = titleParts[0] ? titleParts[0].trim() : 'HABOTEST HT100';
     const currentUrl = window.location.href;
     const whatsappMessage = `আসসালামু আলাইকুম, আমি এই প্রোডাক্টটি অর্ডার করতে চাই: ${productTitle}\nলিংক: ${currentUrl}`;
     const encodedMessage = encodeURIComponent(whatsappMessage);
@@ -98,26 +100,28 @@ function initWhatsAppLinks() {
 }
 
 /**
- * Switch Active Image in Product Gallery
+ * Switch Active Image in Product Gallery (Optimized with requestAnimationFrame)
  */
 window.switchGalleryImage = function (element, imageSrc) {
-    // Update main image source
-    const activeImg = document.getElementById('gallery-active-img');
-    if (activeImg) {
-        activeImg.src = imageSrc;
-        // Reset zoom if it was zoomed
-        activeImg.classList.remove('zoomed');
-    }
+    requestAnimationFrame(() => {
+        // Update main image source
+        const activeImg = document.getElementById('gallery-active-img');
+        if (activeImg) {
+            activeImg.src = imageSrc;
+            // Reset zoom if it was zoomed
+            activeImg.classList.remove('zoomed');
+        }
 
-    // Remove active class from all thumbs
-    const thumbs = document.querySelectorAll('.gallery-thumb');
-    thumbs.forEach(thumb => thumb.classList.remove('active'));
+        // Remove active class from all thumbs
+        const thumbs = document.querySelectorAll('.gallery-thumb');
+        thumbs.forEach(thumb => thumb.classList.remove('active'));
 
-    // Add active class to clicked thumb
-    element.classList.add('active');
+        // Add active class to clicked thumb
+        element.classList.add('active');
+    });
 };
 
-// Setup Zoom Click Handler
+// Setup Zoom Click Handler and Form submission throttling
 document.addEventListener('DOMContentLoaded', () => {
     const activeImg = document.getElementById('gallery-active-img');
     if (activeImg) {
@@ -134,53 +138,65 @@ document.addEventListener('DOMContentLoaded', () => {
     // Google Sheets Order Form Handler
     const checkoutForm = document.getElementById('checkout-form');
     if (checkoutForm) {
+        let isSubmitting = false;
+
         checkoutForm.addEventListener('submit', function (e) {
             e.preventDefault();
 
-            // Your Google Script Web App URL goes here
-            // Example: "https://script.google.com/macros/s/.../exec"
+            // Throttle double submissions
+            if (isSubmitting) return;
+            isSubmitting = true;
+
             const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8tLKUHJQk2-nx3XWI3oUISmEMz1rQAnn6Uw0_0e7yoCeRZaIG1qhXh9gtw0ep3Ley/exec";
 
             const submitBtn = document.getElementById('submit-order-btn');
             const successMsg = document.getElementById('order-success-msg');
-            const submitSpan = submitBtn.querySelector('span');
+            const submitSpan = submitBtn ? submitBtn.querySelector('span') : null;
 
             // Show loading state
             checkoutForm.classList.add('submitting');
-            submitBtn.disabled = true;
-            submitSpan.textContent = "অর্ডার প্রসেস হচ্ছে...";
+            if (submitBtn) submitBtn.disabled = true;
+            if (submitSpan) submitSpan.textContent = "অর্ডার প্রসেস হচ্ছে...";
 
             const formData = new FormData(this);
 
-            // If URL is set, send data. Otherwise simulate success for testing
+            const showSuccess = () => {
+                // Trigger Facebook Pixel Purchase Event if loaded
+                if (typeof fbq === 'function') {
+                    fbq('track', 'Purchase', {
+                        value: 650,
+                        currency: 'BDT'
+                    });
+                }
+                checkoutForm.reset();
+                checkoutForm.classList.add('d-none');
+                if (successMsg) {
+                    successMsg.classList.remove('d-none');
+                    successMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                isSubmitting = false;
+            };
+
             if (GOOGLE_SCRIPT_URL) {
                 fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
                     body: formData
                 })
-                    .then(response => response.json())
-                    .then(data => {
-                        showSuccess();
-                    })
-                    .catch(error => {
-                        console.error('Error submitting order:', error);
-                        // Fallback to success visual state in case of CORS or deployment checks
-                        showSuccess();
-                    });
+                .then(response => response.json())
+                .then(data => {
+                    showSuccess();
+                })
+                .catch(error => {
+                    console.error('Error submitting order:', error);
+                    // Fallback to success visual state in case of CORS or deployment checks
+                    showSuccess();
+                });
             } else {
                 // Simulate network latency for premium feel
                 setTimeout(() => {
                     showSuccess();
                 }, 1200);
             }
-
-            function showSuccess() {
-                checkoutForm.reset();
-                checkoutForm.classList.add('d-none');
-                successMsg.classList.remove('d-none');
-                successMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
         });
     }
 });
-
