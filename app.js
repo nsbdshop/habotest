@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Intersection Observer for scroll animations (Fade-up, etc.)
     initScrollAnimations();
+
+    // Dynamically append product info to WhatsApp links
+    initWhatsAppLinks();
 });
 
 /**
@@ -62,6 +65,35 @@ function initScrollAnimations() {
 
     animatedElements.forEach(element => {
         observer.observe(element);
+    });
+}
+
+/**
+ * Dynamically append product info to WhatsApp links
+ */
+function initWhatsAppLinks() {
+    const productTitle = document.title.split('|')[0].trim();
+    const currentUrl = window.location.href;
+    const whatsappMessage = `আসসালামু আলাইকুম, আমি এই প্রোডাক্টটি অর্ডার করতে চাই: ${productTitle}\nলিংক: ${currentUrl}`;
+    const encodedMessage = encodeURIComponent(whatsappMessage);
+
+    const whatsappLinks = document.querySelectorAll('a[href*="wa.me"]');
+    whatsappLinks.forEach(link => {
+        try {
+            const urlObj = new URL(link.href);
+            if (!urlObj.searchParams.has('text')) {
+                urlObj.searchParams.set('text', whatsappMessage);
+                link.href = urlObj.toString();
+            }
+        } catch (e) {
+            if (!link.href.includes('text=')) {
+                if (link.href.includes('?')) {
+                    link.href += `&text=${encodedMessage}`;
+                } else {
+                    link.href += `?text=${encodedMessage}`;
+                }
+            }
+        }
     });
 }
 
